@@ -39,7 +39,7 @@ default_sequence_subset_strategy: SequenceSubsetStrategy = (
 )
 sequence_subset_strategy: SequenceSubsetStrategy = env.enum(
     "SEQUENCE_SUBSET_STRATEGY",
-    type=SequenceSubsetStrategy,
+    enum=SequenceSubsetStrategy,
     ignore_case=True,
     # Pass .name as default here, because matching happens on string name:
     # The internal "if enum_value.name.lower() == value.lower()" will fail unless value is the .name. The enum object itself doesn't have a .lower()
