@@ -59,17 +59,7 @@ def pytest_configure(config):
     from malid import config as malid_config_module
 
     if config.getoption("--gpu"):
-        try:
-            choosegpu.configure_gpu(enable=True, memory_pool=True)
-        except Exception as err:
-            # Fallback: if nvitop/pynvml is incompatible, select a GPU via CUDA_VISIBLE_DEVICES.
-            # Preserve intended behavior (GPU enabled) without relying on nvitop.
-            try:
-                preferred = getattr(choosegpu, "preferred_gpu_ids", None)
-                gpu_id = str(preferred[0]) if preferred else "0"
-            except Exception:
-                gpu_id = "0"
-            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
+        choosegpu.configure_gpu(enable=True, memory_pool=True)
     else:
         choosegpu.configure_gpu(enable=False)
 
