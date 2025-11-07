@@ -32,6 +32,15 @@ from environs import Env
 
 env = Env()
 
+def _get_enum_by_name_case_insensitive(enum_cls, name: str):
+    for member in enum_cls:
+        if member.name.lower() == name.lower():
+            return member
+    valid = ", ".join(m.name for m in enum_cls)
+    raise ValueError(
+        f"Invalid value '{name}' for {enum_cls.__name__}. Valid options: {valid}"
+    )
+
 ## Feature flags for modeling
 
 # Active dataset version
@@ -45,13 +54,11 @@ _default_cross_validation_split_strategy = (
 # cross_validation_split_strategy = CrossValidationSplitStrategy[
 #     os.getenv("MALID_CV_SPLIT", _default_cross_validation_split_strategy.name)
 # ]
-cross_validation_split_strategy: CrossValidationSplitStrategy = env.enum(
-    "MALID_CV_SPLIT",
-    enum=CrossValidationSplitStrategy,
-    ignore_case=True,
-    # Pass .name as default here, because matching happens on string name:
-    # The internal "if enum_value.name.lower() == value.lower()" will fail unless value is the .name. The enum object itself doesn't have a .lower()
-    default=_default_cross_validation_split_strategy.name,
+_cv_env_value = os.getenv(
+    "MALID_CV_SPLIT", _default_cross_validation_split_strategy.name
+)
+cross_validation_split_strategy: CrossValidationSplitStrategy = _get_enum_by_name_case_insensitive(
+    CrossValidationSplitStrategy, _cv_env_value
 )
 
 if not cross_validation_split_strategy.value.is_single_fold_only:

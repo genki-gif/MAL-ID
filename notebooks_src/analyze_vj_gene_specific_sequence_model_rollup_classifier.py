@@ -17,6 +17,7 @@ from summarynb import show
 from typing import Callable, Optional
 import numpy as np
 import multiclass_metrics
+import os
 from malid.datamodels import (
     SampleWeightStrategy,
     healthy_label,
@@ -31,19 +32,24 @@ config.embedder.name
 
 # %%
 # Read this optional flag from environment variables.
-from environs import Env
-
-env = Env()
 default_sequence_subset_strategy: SequenceSubsetStrategy = (
     config.metamodel_base_model_names.base_sequence_model_subset_strategy
 )
-sequence_subset_strategy: SequenceSubsetStrategy = env.enum(
-    "SEQUENCE_SUBSET_STRATEGY",
-    enum=SequenceSubsetStrategy,
-    ignore_case=True,
-    # Pass .name as default here, because matching happens on string name:
-    # The internal "if enum_value.name.lower() == value.lower()" will fail unless value is the .name. The enum object itself doesn't have a .lower()
-    default=default_sequence_subset_strategy.name,
+_seq_subset_env_value = os.getenv(
+    "SEQUENCE_SUBSET_STRATEGY", default_sequence_subset_strategy.name
+)
+
+def _get_enum_by_name_case_insensitive(enum_cls, name: str):
+    for member in enum_cls:
+        if member.name.lower() == name.lower():
+            return member
+    valid = ", ".join(m.name for m in enum_cls)
+    raise ValueError(
+        f"Invalid value '{name}' for {enum_cls.__name__}. Valid options: {valid}"
+    )
+
+sequence_subset_strategy: SequenceSubsetStrategy = _get_enum_by_name_case_insensitive(
+    SequenceSubsetStrategy, _seq_subset_env_value
 )
 sequence_subset_strategy
 
