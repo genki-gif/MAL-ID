@@ -80,6 +80,9 @@ sentry-sdk>=1.5.1
 # and further downgrade setuptools for bio-transformers install in requirements-extra.txt: https://github.com/pypa/setuptools/issues/2938
 setuptools==58.1.0
 
+# nvitop currently expects private symbols removed in pynvml>=12; pin to <12 to avoid ImportError
+pynvml<12
+
 shap==0.44.0
 statannotations==0.4.3
 static-class-property==0.0.1
