@@ -4,6 +4,7 @@ local/
 .vscode/
 .DS_Store
 models.*.pkl
+agent_logs/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
