@@ -282,7 +282,7 @@ def make_paths(
     dataset_version: str,
     base_data_dir="data",
     base_output_dir="out",
-    base_scratch_dir="/srv/scratch/$USER/",
+    base_scratch_dir=None,
     relative_to_path=None,
 ):
     """
@@ -310,6 +310,10 @@ def make_paths(
     # Root directories
     paths.base_data_dir = Path(base_data_dir)
     paths.base_output_dir = Path(base_output_dir)
+    # Allow overriding scratch directory with environment variable to avoid permission errors on systems
+    # where /srv/scratch is not writable.
+    if base_scratch_dir is None:
+        base_scratch_dir = os.getenv("MALID_SCRATCH_DIR", "/srv/scratch/$USER/")
     paths.base_scratch_dir = Path(base_scratch_dir)
 
     # ********************************************************************************************************************
