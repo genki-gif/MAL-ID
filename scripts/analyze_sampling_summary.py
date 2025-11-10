@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import os
+import argparse
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import dask.dataframe as dd
 
@@ -62,9 +63,79 @@ def write_tsv(path: Path, rows: Dict[str, Any]) -> None:
         df_dis.to_csv(path2, sep="\t", index=False)
 
 
+def _discover_existing_dataset_version(base_data_dir: Path) -> Optional[str]:
+    """
+    Look for data/data_v_*/sequences.parquet and return a version string if found.
+    Prefer the most recently modified directory.
+    """
+    candidates = []
+    try:
+        for child in base_data_dir.glob("data_v_*"):
+            if (child / "sequences.parquet").exists():
+                candidates.append(child)
+    except Exception:
+        return None
+    if not candidates:
+        return None
+    # Sort by mtime, descending
+    candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    # child.name like data_v_20231109 -> extract suffix
+    name = candidates[0].name
+    if name.startswith("data_v_"):
+        return name.replace("data_v_", "")
+    return None
+
+
 def main():
-    sequences_path = config.paths.sequences
-    sequences_sampled_path = config.paths.sequences_sampled
+    parser = argparse.ArgumentParser(description="Summarize sampling before/after ETL sampling step.")
+    parser.add_argument(
+        "--dataset-version",
+        dest="dataset_version",
+        type=str,
+        default=None,
+        help="Override dataset version (e.g., 20231109). Falls back to MALID_DATASET_VERSION or config default.",
+    )
+    args = parser.parse_args()
+
+    # Resolve dataset version to use:
+    dataset_version = (
+        args.dataset_version
+        if args.dataset_version is not None
+        else os.getenv("MALID_DATASET_VERSION", config.dataset_version)
+    )
+
+    # Build paths for the resolved dataset version
+    paths_for_run = config.make_paths(
+        embedder=config.embedder,
+        cross_validation_split_strategy=config.cross_validation_split_strategy,
+        dataset_version=dataset_version,
+        base_data_dir=config.paths.base_data_dir,     # keep same roots
+        base_output_dir=config.paths.base_output_dir,
+        base_scratch_dir=config.paths.base_scratch_dir,
+    )
+
+    # If sequences are missing, try to auto-discover an existing dataset version
+    if not (paths_for_run.sequences.exists()):
+        discovered = _discover_existing_dataset_version(config.paths.base_data_dir)
+        if discovered and discovered != dataset_version:
+            logger.warning(
+                f"Configured dataset version {dataset_version} not found, falling back to discovered existing version {discovered}"
+            )
+            dataset_version = discovered
+            paths_for_run = config.make_paths(
+                embedder=config.embedder,
+                cross_validation_split_strategy=config.cross_validation_split_strategy,
+                dataset_version=dataset_version,
+                base_data_dir=config.paths.base_data_dir,
+                base_output_dir=config.paths.base_output_dir,
+                base_scratch_dir=config.paths.base_scratch_dir,
+            )
+        else:
+            # Keep going; dd.read_parquet will raise a clear FileNotFoundError
+            pass
+
+    sequences_path = paths_for_run.sequences
+    sequences_sampled_path = paths_for_run.sequences_sampled
 
     out_dir = config.paths.base_output_dir / "sampling_summary"
     os.makedirs(out_dir, exist_ok=True)
