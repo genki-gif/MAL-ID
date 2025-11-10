@@ -51,13 +51,16 @@ def compute_counts(
 	group_cols: List[str],
 	clone_col: Optional[str],
 ) -> dd.DataFrame:
-	# Always compute sequence counts
-	agg = {"__seq_count__": ("specimen_label", "size")}
-	# And unique clone counts if clone_col present
-	if clone_col is not None:
-		agg["__clone_count__"] = (clone_col, "nunique")
-	g = df.groupby(group_cols).agg(agg).reset_index()
-	return g
+	# Dask does not support pandas-style named aggregations with ('col', 'size')
+	# Compute size via groupby.size() and nunique via a separate aggregation, then merge.
+	gb = df.groupby(group_cols)
+	seq_count = gb.size().rename("__seq_count__").to_frame().reset_index()
+	if clone_col is not None and clone_col in df.columns:
+		clone_count = gb[clone_col].nunique().rename("__clone_count__").reset_index()
+		out = seq_count.merge(clone_count, on=group_cols, how="left")
+	else:
+		out = seq_count
+	return out
 
 
 def to_pandas(df: dd.DataFrame):
