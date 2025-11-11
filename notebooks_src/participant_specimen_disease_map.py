@@ -41,18 +41,9 @@ dask.config.set(
 
 # %%
 # These will be picked up by individual workers
-
-with open(os.path.expandvars("$HOME/.config/dask/distributed.yaml"), "w") as w:
-    w.write(
-        """distributed:
-  comm:
-    retry:
-      count: 5
-    timeouts:
-      connect: 120s          # time before connecting fails
-      tcp: 120s              # time before calling an unresponsive connection dead
-    """
-    )
+# Note: Avoid writing config files to disk; rely on in-memory dask.config.set above.
+# The following block was removed to prevent FileNotFoundError when $HOME/.config/dask does not exist.
+# If persistent config is needed, ensure the directory exists and write explicitly outside this notebook.
 
 # %%
 from dask.distributed import Client
