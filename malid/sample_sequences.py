@@ -64,26 +64,37 @@ def sample_sequences(
         .fillna(0)
     )
 
-    # Ignore this sample entirely if it fails locus-specific minimum clone criteria.
-    # Relaxation: Do NOT require all BCR isotype groups simultaneously.
-    # - If BCR is required: require that at least one of the BCR isotype groups meets its threshold.
-    # - If TCR is required: require that TCRB meets its threshold.
-    bcr_isotypes = ["IGHG", "IGHA", "IGHD-M"]
-    bcr_ok = True
-    if GeneLocus.BCR in required_gene_loci:
-        bcr_ok = any(
-            clone_count_by_isotype.loc[i] >= REQUIRED_CLONE_COUNTS_BY_ISOTYPE[i]
-            for i in bcr_isotypes
-            if i in clone_count_by_isotype.index
+    # Ignore this sample entirely if not enough clones left in class-switched or naive isotypes
+    # (Do this before filtering naive isotypes to SHM+ below. i.e. apply the filter to total IgM+D, not mutated subset only)
+    # This check depends on which gene loci are expected/required
+    if (
+        (
+            GeneLocus.BCR in required_gene_loci
+            and clone_count_by_isotype.loc["IGHG"]
+            < REQUIRED_CLONE_COUNTS_BY_ISOTYPE["IGHG"]
         )
-    # Do not require TCRB clones to exceed a threshold (relaxed per user request)
-    tcr_ok = True
-    if not (bcr_ok and tcr_ok):
+        or (
+            GeneLocus.BCR in required_gene_loci
+            and clone_count_by_isotype.loc["IGHA"]
+            < REQUIRED_CLONE_COUNTS_BY_ISOTYPE["IGHA"]
+        )
+        or (
+            GeneLocus.BCR in required_gene_loci
+            and clone_count_by_isotype.loc["IGHD-M"]
+            < REQUIRED_CLONE_COUNTS_BY_ISOTYPE["IGHD-M"]
+        )
+        or (
+            GeneLocus.TCR in required_gene_loci
+            and clone_count_by_isotype.loc["TCRB"]
+            < REQUIRED_CLONE_COUNTS_BY_ISOTYPE["TCRB"]
+        )
+    ):
+        # return blank
+        # this should eliminate the partition once it's been read back in. otherwise try https://stackoverflow.com/a/50613803/130164
         logger.info(
-            f"Removing {participant_label} specimen {specimen_label} because minimum clone criteria not met. Clone count by isotype: {clone_count_by_isotype.to_dict()}, "
-            f"bcr_required={'yes' if GeneLocus.BCR in required_gene_loci else 'no'}, tcr_required={'yes' if GeneLocus.TCR in required_gene_loci else 'no'}"
+            f"Removing {participant_label} specimen {specimen_label} because it did not have enough clones. Clone count by isotype: {clone_count_by_isotype.to_dict()}"
         )
-        return pd.DataFrame()
+        return pd.DataFrame()  # or: return df.head(0)
 
     # Filter out naive IgM/IgD with low SHM, but leave non-class-switched antigen-experienced cells
     df = df.loc[~((df["isotype_supergroup"] == "IGHD-M") & (df["v_mut"] < 0.01))]
@@ -140,7 +151,13 @@ def sample_sequences(
         left_on=grouping_keys,
     )
 
-    # Do not require presence of all isotype groups; proceed with those available.
+    # Remove specimen if missing some isotypes
+    if set(df["isotype_supergroup"].unique()) != set(required_isotype_groups):
+        # return blank
+        logger.info(
+            f"Removing {participant_label} specimen {specimen_label} because it did not have all isotype groups: {df['isotype_supergroup'].unique()} instead of {required_isotype_groups}"
+        )
+        return pd.DataFrame()  # or: return df.head(0)
 
     # Remove remaining empty isotype groups from categorical column (cast defensively to categorical)
     df["isotype_supergroup"] = (
