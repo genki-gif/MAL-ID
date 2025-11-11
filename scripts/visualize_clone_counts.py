@@ -76,7 +76,13 @@ def save_tsv(df, path: Path):
 
 def save_percentiles(series, quantiles: List[float], path: Path, name: str):
 	import pandas as pd  # type: ignore
-	q = pd.Series(series).quantile(quantiles)
+	# Ensure numeric
+	s = pd.to_numeric(pd.Series(series), errors="coerce")
+	s = s[s.notna()]
+	if s.empty:
+		q = pd.Series(index=quantiles, data=[float("nan")] * len(quantiles))
+	else:
+		q = s.quantile(quantiles)
 	out = q.reset_index()
 	out.columns = ["quantile", name]
 	path.parent.mkdir(parents=True, exist_ok=True)
@@ -137,6 +143,17 @@ def main():
 	g_overall = compute_counts(df, group_cols, clone_col)
 	pdf_overall = to_pandas(g_overall)
 	save_tsv(pdf_overall, outdir / "counts_per_specimen.tsv")
+	# Basic sanity print
+	try:
+		min_seq = float(pdf_overall["__seq_count__"].min())
+		max_seq = float(pdf_overall["__seq_count__"].max())
+		logger.info(f"Per-specimen sequence counts: min={min_seq}, max={max_seq}")
+		if "__clone_count__" in pdf_overall.columns:
+			min_cln = float(pdf_overall["__clone_count__"].min())
+			max_cln = float(pdf_overall["__clone_count__"].max())
+			logger.info(f"Per-specimen unique clone counts: min={min_cln}, max={max_cln}")
+	except Exception as _:
+		pass
 
 	# Percentiles
 	q_list = [0.5, 0.75, 0.9, 0.95, 0.99]
