@@ -76,12 +76,8 @@ def sample_sequences(
             for i in bcr_isotypes
             if i in clone_count_by_isotype.index
         )
+    # Do not require TCRB clones to exceed a threshold (relaxed per user request)
     tcr_ok = True
-    if GeneLocus.TCR in required_gene_loci:
-        tcr_ok = (
-            clone_count_by_isotype.loc["TCRB"]
-            >= REQUIRED_CLONE_COUNTS_BY_ISOTYPE["TCRB"]
-        )
     if not (bcr_ok and tcr_ok):
         logger.info(
             f"Removing {participant_label} specimen {specimen_label} because minimum clone criteria not met. Clone count by isotype: {clone_count_by_isotype.to_dict()}, "
