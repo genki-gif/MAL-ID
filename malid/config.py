@@ -44,7 +44,7 @@ def _get_enum_by_name_case_insensitive(enum_cls, name: str):
 ## Feature flags for modeling
 
 # Active dataset version
-_default_dataset_version = "20231027"
+_default_dataset_version = "20231109"
 dataset_version = os.getenv("MALID_DATASET_VERSION", _default_dataset_version)
 
 # Active cross-validation split strategy
