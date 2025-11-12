@@ -1,4 +1,18 @@
-#!/usr/bin/env bash
+#!/bin/sh
+#$ -cwd
+#$ -l node_q=1
+#$ -l h_rt=12:00:00
+#$ -N run_embedding_all
+#$ -o job_logs/
+#$ -e job_logs/
+#$ -m abe
+#$ -M masuda@li.comp.isct.ac.jp
+
+# --- 環境設定 ---
+. /etc/profile.d/modules.sh
+source ~/.bashrc
+mamba activate cuda-env-py39
+
 set -euo pipefail
 
 # Configuration (can be overridden via environment)
