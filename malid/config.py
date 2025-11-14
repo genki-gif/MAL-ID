@@ -114,18 +114,18 @@ metamodel_base_model_names.aggregation_sequence_model_name = {
 model_names_to_train = [
     # Training is fast because the inputs are small,
     # so we can afford to train more complex models.
-    "dummy_most_frequent",
-    "dummy_stratified",
-    #
-    "lasso_cv",
-    "elasticnet_cv0.75",
-    "elasticnet_cv",
-    "elasticnet_cv0.25",
-    "ridge_cv",
-    "logisticregression_unregularized",  # for comparison
-    #
-    "rf_multiclass",
-    "linearsvm_ovr",
+    # "dummy_most_frequent",
+    # "dummy_stratified",
+    # #
+    # "lasso_cv",
+    # "elasticnet_cv0.75",
+    # "elasticnet_cv",
+    # "elasticnet_cv0.25",
+    "ridge_cv", # 'ridge_cv'だけ使う。
+    # "logisticregression_unregularized",  # for comparison
+    # #
+    # "rf_multiclass",
+    # "linearsvm_ovr",
 ]
 model_names_to_analyze_extra = [
     # Some analysis is time-consuming
